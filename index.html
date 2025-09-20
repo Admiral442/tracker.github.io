@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Minecraft Server Tracker</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #1e1e2e;
+      color: #f8f8f2;
+      text-align: center;
+      padding: 2em;
+    }
+    .card {
+      background: #282a36;
+      padding: 2em;
+      border-radius: 12px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+      display: inline-block;
+      min-width: 320px;
+    }
+    img {
+      width: 64px;
+      height: 64px;
+      margin-bottom: 10px;
+    }
+    h1 {
+      margin: 0.2em 0;
+      color: #50fa7b;
+    }
+    .players {
+      font-size: 1.2em;
+      margin: 0.5em 0;
+    }
+    .status {
+      font-weight: bold;
+      margin: 0.5em 0;
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <img id="icon" alt="Server Icon" />
+    <h1 id="motd">Loading...</h1>
+    <div class="status" id="status">Checking server...</div>
+    <div class="players" id="players"></div>
+    <div id="version"></div>
+    <div id="latency"></div>
+  </div>
+
+  <script>
+    async function fetchServerInfo() {
+      const serverIP = "play.hypixel.net"; // change this to your server IP
+      const apiUrl = `https://api.mcsrvstat.us/2/${serverIP}`;
+
+      try {
+        const response = await fetch(apiUrl);
+        const data = await response.json();
+
+        if (!data.online) {
+          document.getElementById("status").textContent = "Server is offline ❌";
+          document.getElementById("motd").textContent = serverIP;
+          return;
+        }
+
+        // Update UI
+        document.getElementById("status").textContent = "Server is online ✅";
+        document.getElementById("motd").textContent = data.motd.clean.join(" ") || serverIP;
+        document.getElementById("players").textContent = `Players: ${data.players.online}/${data.players.max}`;
+        document.getElementById("version").textContent = `Version: ${data.version}`;
+        document.getElementById("latency").textContent = `Ping: ${data.debug.ping ? "✔️" : "❌"}`;
+
+        if (data.icon) {
+          document.getElementById("icon").src = data.icon;
+        } else {
+          document.getElementById("icon").style.display = "none";
+        }
+      } catch (err) {
+        document.getElementById("status").textContent = "Error fetching server info ❌";
+        console.error(err);
+      }
+    }
+
+    fetchServerInfo();
+    setInterval(fetchServerInfo, 10000); // refresh every 10 seconds
+  </script>
+</body>
+</html>
