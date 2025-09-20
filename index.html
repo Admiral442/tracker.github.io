@@ -3,6 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <title>Minecraft Server Tracker</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns"></script>
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -18,6 +20,19 @@
       box-shadow: 0 4px 20px rgba(0,0,0,0.3);
       display: inline-block;
       min-width: 320px;
+      margin: 1em;
+    }
+    .chart-container {
+      background: #282a36;
+      padding: 2em;
+      border-radius: 12px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+      margin: 1em auto;
+      max-width: 800px;
+      width: 90%;
+    }
+    #playerChart {
+      max-height: 400px;
     }
     img {
       width: 64px;
@@ -48,7 +63,98 @@
     <div id="latency"></div>
   </div>
 
+  <div class="chart-container">
+    <h2 style="color: #50fa7b; margin-bottom: 1em;">Player Count Over Time</h2>
+    <canvas id="playerChart"></canvas>
+  </div>
+
   <script>
+    let playerChart;
+    let playerData = [];
+    const maxDataPoints = 20;
+
+    // Initialize the chart
+    function initializeChart() {
+      const ctx = document.getElementById('playerChart').getContext('2d');
+      playerChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+          datasets: [{
+            label: 'Player Count',
+            data: [],
+            borderColor: '#50fa7b',
+            backgroundColor: 'rgba(80, 250, 123, 0.1)',
+            borderWidth: 2,
+            fill: true,
+            tension: 0.4
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              labels: {
+                color: '#f8f8f2'
+              }
+            }
+          },
+          scales: {
+            x: {
+              type: 'time',
+              time: {
+                displayFormats: {
+                  minute: 'HH:mm',
+                  hour: 'HH:mm'
+                }
+              },
+              ticks: {
+                color: '#f8f8f2'
+              },
+              grid: {
+                color: 'rgba(248, 248, 242, 0.1)'
+              }
+            },
+            y: {
+              beginAtZero: true,
+              ticks: {
+                color: '#f8f8f2',
+                stepSize: 1
+              },
+              grid: {
+                color: 'rgba(248, 248, 242, 0.1)'
+              }
+            }
+          },
+          elements: {
+            point: {
+              radius: 4,
+              hoverRadius: 6
+            }
+          }
+        }
+      });
+    }
+
+    function updateChart(playerCount) {
+      const now = new Date();
+      
+      // Add new data point
+      playerData.push({
+        x: now,
+        y: playerCount
+      });
+
+      // Keep only the last maxDataPoints
+      if (playerData.length > maxDataPoints) {
+        playerData.shift();
+      }
+
+      // Update chart data
+      playerChart.data.datasets[0].data = playerData;
+      playerChart.update('none'); // Use 'none' for smoother updates
+    }
+
     async function fetchServerInfo() {
       const serverIP = "play.hypixel.net"; // change this to your server IP
       const apiUrl = `https://api.mcsrvstat.us/2/${serverIP}`;
@@ -70,6 +176,9 @@
         document.getElementById("version").textContent = `Version: ${data.version}`;
         document.getElementById("latency").textContent = `Ping: ${data.debug.ping ? "✔️" : "❌"}`;
 
+        // Update chart with new player count
+        updateChart(data.players.online);
+
         if (data.icon) {
           document.getElementById("icon").src = data.icon;
         } else {
@@ -81,8 +190,12 @@
       }
     }
 
-    fetchServerInfo();
-    setInterval(fetchServerInfo, 10000); // refresh every 10 seconds
+    // Initialize everything when page loads
+    window.addEventListener('load', function() {
+      initializeChart();
+      fetchServerInfo();
+      setInterval(fetchServerInfo, 10000); // refresh every 10 seconds
+    });
   </script>
 </body>
 </html>
